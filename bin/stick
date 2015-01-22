@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'methadone'
+require 'poke/stick.rb'
+require 'uri'
+require 'rack'
+
+class App
+  include Methadone::Main
+  include Methadone::CLILogging
+
+  main do |target, filename|
+    uri = URI normalize(target)
+    if filename
+      unless options[:mimetype]
+        options[:mimetype] =
+          Rack::Mime.mime_type(options[:extension] || File.extname(filename))
+      end
+      # POST
+      File.open(filename) do |fh|
+        Poke::Stick.post uri, fh, options
+      end
+    else
+      Poke::Stick.get uri, options
+    end
+  end
+
+  # supplemental methods here
+
+  def self.normalize target
+    unless target.match(/^https?:\/\//)
+      target = "http://#{target}"
+    end
+    target
+  end
+
+  # Declare command-line interface here
+
+  # description "one line description of your app"
+  description <<-DESC
+  A command-line client for the Poke message transport server.  Performs a
+  GET request using the target URI, unless a --file is supplied, in which
+  case a POST request is made using the contents of the supplied file.
+  The mimetype is determined from the file's extension, but this can be
+  overridden (see options below).
+  DESC
+
+  on '-m', '--mimetype MIMETYPE', 'Use MIMETYPE (POST only)'
+  on '-x', '--extension EXT',     'Use EXT to set mimetype (POST only)'
+  on '-v', '--verbose',           'Moar output (status, content-type)'
+
+  arg :target, 'A URI for the Poke request'
+  arg :filename, :optional, 'Contents of file will be POSTed'
+
+  version Poke::Stick::VERSION
+
+  use_log_level_option :toggle_debug_on_signal => 'USR1'
+
+  go!
+end

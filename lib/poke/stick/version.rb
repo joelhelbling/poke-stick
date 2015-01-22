@@ -1,5 +1,5 @@
 module Poke
-  module Stick
+  class Stick
     VERSION = "0.0.1"
   end
 end

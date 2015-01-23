@@ -2,7 +2,7 @@
 
 require 'optparse'
 require 'methadone'
-require 'poke/stick.rb'
+require 'poke/stick'
 require 'uri'
 require 'rack'
 
@@ -10,19 +10,20 @@ class App
   include Methadone::Main
   include Methadone::CLILogging
 
+  Client = Poke::Stick::Client
+
   main do |target, filename|
     uri = URI normalize(target)
-    if filename
+    if filename # POST
       unless options[:mimetype]
         options[:mimetype] =
           Rack::Mime.mime_type(options[:extension] || File.extname(filename))
       end
-      # POST
       File.open(filename) do |fh|
-        Poke::Stick.post uri, fh, options
+        Client.post(uri, fh, options)
       end
-    else
-      Poke::Stick.get uri, options
+    else # GET
+      Client.get(uri, options)
     end
   end
 
